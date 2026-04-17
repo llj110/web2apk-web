@@ -196,9 +196,10 @@ allprojects {{
     write_text(proj / "settings.gradle", "rootProject.name = 'Web2Apk'\ninclude ':app'\n")
 
     write_text(proj / "gradle.properties", """\
-org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
-org.gradle.parallel=true
-org.gradle.caching=true
+org.gradle.jvmargs=-Xmx256m -Dfile.encoding=UTF-8
+org.gradle.parallel=false
+org.gradle.caching=false
+org.gradle.daemon=false
 android.useAndroidX=false
 android.enableJetifier=false
 """)
@@ -360,6 +361,8 @@ def build_apk(workspace: Path) -> Path:
     env["JAVA_HOME"] = str(workspace / "jdk")
     env["ANDROID_SDK_ROOT"] = str(workspace / "android-sdk")
     env["PATH"] = f"{env['JAVA_HOME']}/bin:{env['PATH']}"
+    env["GRADLE_OPTS"] = "-Xmx256m"
+    env["_JAVA_OPTIONS"] = "-Xmx256m"
 
     print("[build] Running Gradle assembleDebug ...")
     result = subprocess.run(
