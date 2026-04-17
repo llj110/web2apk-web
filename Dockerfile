@@ -42,16 +42,9 @@ RUN mkdir -p /opt/web2apk_workspace && \
     ln -s /opt/android-sdk /opt/web2apk_workspace/android-sdk && \
     ln -s /opt/gradle-7.5 /opt/web2apk_workspace/gradle-7.5
 
-# 6. Copy web2apk.py and run a warm-up build so Gradle dependencies are cached
+# 6. Copy web2apk.py for the app to use
 COPY web2apk.py /app/web2apk.py
 WORKDIR /app
-RUN WEB2APK_NO_DOWNLOAD=1 python3 web2apk.py \
-    --url https://example.com \
-    --name WarmUp \
-    --package com.example.warmup \
-    --workspace /opt/web2apk_workspace \
-    --output /tmp && \
-    rm -rf /tmp/WarmUp-debug.apk /opt/web2apk_workspace/project
 
 # 7. Copy FastAPI app and install deps
 COPY app /app/app
