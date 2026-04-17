@@ -196,10 +196,11 @@ allprojects {{
     write_text(proj / "settings.gradle", "rootProject.name = 'Web2Apk'\ninclude ':app'\n")
 
     write_text(proj / "gradle.properties", """\
-org.gradle.jvmargs=-Xmx256m -Dfile.encoding=UTF-8
+org.gradle.jvmargs=-Xmx128m -Dfile.encoding=UTF-8
 org.gradle.parallel=false
 org.gradle.caching=false
 org.gradle.daemon=false
+org.gradle.workers.max=1
 android.useAndroidX=false
 android.enableJetifier=false
 """)
