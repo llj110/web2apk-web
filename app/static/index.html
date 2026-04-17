@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web2Apk - 网站打包成 APK</title>
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #1e293b;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --success: #10b981;
+      --error: #ef4444;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+    .card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      text-align: center;
+    }
+    p.subtitle {
+      text-align: center;
+      color: var(--muted);
+      margin-bottom: 28px;
+    }
+    .form-group {
+      margin-bottom: 18px;
+    }
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 10px 12px;
+      font-size: 15px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      outline: none;
+      transition: border-color .2s;
+    }
+    input[type="text"]:focus {
+      border-color: var(--primary);
+    }
+    .hint {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+      background: var(--primary);
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background .2s;
+    }
+    button:hover:not(:disabled) {
+      background: var(--primary-hover);
+    }
+    button:disabled {
+      opacity: .7;
+      cursor: not-allowed;
+    }
+    .status {
+      margin-top: 24px;
+      padding: 16px;
+      border-radius: 10px;
+      background: #f1f5f9;
+      display: none;
+    }
+    .status.running { display: block; }
+    .status.success {
+      display: block;
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+    }
+    .status.error {
+      display: block;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+    }
+    .spinner {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(0,0,0,.1);
+      border-left-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .download-link {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 10px 16px;
+      background: var(--success);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 500;
+    }
+    .log {
+      margin-top: 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      white-space: pre-wrap;
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 12px;
+      border-radius: 8px;
+      max-height: 240px;
+      overflow: auto;
+    }
+    footer {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>Web2Apk</h1>
+      <p class="subtitle">输入网址，一键打包成 Android APK</p>
+
+      <div class="form-group">
+        <label for="url">网站地址</label>
+        <input type="text" id="url" placeholder="https://example.com" value="https://hanju51.com/">
+      </div>
+
+      <div class="form-group">
+        <label for="name">应用名称</label>
+        <input type="text" id="name" placeholder="MyApp" value="HanJu51">
+      </div>
+
+      <div class="form-group">
+        <label for="package">包名</label>
+        <input type="text" id="package" placeholder="com.example.myapp" value="com.example.hanju51">
+        <div class="hint">例如 com.example.app，用于 APK 的唯一标识</div>
+      </div>
+
+      <button id="buildBtn" onclick="startBuild()">开始构建 APK</button>
+
+      <div id="statusBox" class="status">
+        <div id="statusText"></div>
+        <pre id="logBox" class="log" style="display:none"></pre>
+      </div>
+    </div>
+
+    <footer>
+      构建结果仅保留 24 小时 · <a href="https://github.com" target="_blank">GitHub 开源</a>
+    </footer>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    let pollTimer = null;
+
+    function setStatus(cls, html, log='') {
+      const box = $('statusBox');
+      box.className = 'status ' + cls;
+      $('statusText').innerHTML = html;
+      if (log) {
+        $('logBox').style.display = 'block';
+        $('logBox').textContent = log;
+      } else {
+        $('logBox').style.display = 'none';
+      }
+    }
+
+    async function startBuild() {
+      if (pollTimer) clearInterval(pollTimer);
+
+      const url = $('url').value.trim();
+      const name = $('name').value.trim() || 'WebApp';
+      const pkg = $('package').value.trim() || 'com.example.webapp';
+
+      if (!url || !/^https?:\/\//i.test(url)) {
+        alert('请输入以 http:// 或 https:// 开头的网址');
+        return;
+      }
+
+      $('buildBtn').disabled = true;
+      setStatus('running', '<span class="spinner"></span> 正在提交构建任务…');
+
+      try {
+        const res = await fetch('/api/build', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url, name, package: pkg })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.detail || '构建提交失败');
+        }
+        pollStatus(data.job_id);
+      } catch (e) {
+        $('buildBtn').disabled = false;
+        setStatus('error', '提交失败：' + e.message);
+      }
+    }
+
+    function pollStatus(jobId) {
+      setStatus('running', '<span class="spinner"></span> 正在排队/构建中，请稍候…');
+      pollTimer = setInterval(async () => {
+        try {
+          const res = await fetch('/api/status/' + jobId);
+          const data = await res.json();
+
+          if (data.status === 'running' || data.status === 'pending') {
+            setStatus('running', '<span class="spinner"></span> ' + (data.message || '正在构建中，请稍候…'));
+          } else if (data.status === 'success') {
+            clearInterval(pollTimer);
+            $('buildBtn').disabled = false;
+            setStatus('success',
+              '<strong>构建成功！</strong><br>' +
+              '<a class="download-link" href="' + data.download_url + '" download>下载 APK</a>'
+            );
+          } else {
+            clearInterval(pollTimer);
+            $('buildBtn').disabled = false;
+            setStatus('error', '构建失败：' + (data.message || '未知错误'), data.log || '');
+          }
+        } catch (e) {
+          clearInterval(pollTimer);
+          $('buildBtn').disabled = false;
+          setStatus('error', '查询状态时出错：' + e.message);
+        }
+      }, 3000);
+    }
+  </script>
+</body>
+</html>

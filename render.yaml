@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: web2apk-web
+    runtime: docker
+    plan: free
+    dockerContext: .
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: WEB2APK_NO_DOWNLOAD
+        value: "1"
+      - key: WORKSPACE_DIR
+        value: /tmp/web2apk_workspace
+    disk:
+      name: builds
+      mountPath: /tmp/builds
+      sizeGB: 1
