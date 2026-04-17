@@ -192,6 +192,11 @@ def download_apk(job_id: str) -> FileResponse:
     )
 
 
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
 @app.get("/")
 def root():
     return RedirectResponse(url="/static/index.html")
